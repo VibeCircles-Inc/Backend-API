@@ -1,114 +1,138 @@
 const jwt = require('jsonwebtoken');
-const { query } = require('../config/database');
+const db = require('../config/database');
 
-const protect = async (req, res, next) => {
-  let token;
-
-  // Check for token in headers
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  // Check for token in cookies
-  if (!token && req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  // Check for token in session
-  if (!token && req.session && req.session.token) {
-    token = req.session.token;
-  }
-
-  if (!token) {
-    return res.status(401).json({
-      success: false,
-      error: 'Not authorized to access this route'
-    });
-  }
-
+// Middleware to verify JWT token
+const authenticateToken = async (req, res, next) => {
   try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Access token required' 
+      });
+    }
+
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
+    
     // Get user from database
-    const users = await query(
-      'SELECT id, username, email, first_name, last_name, avatar, is_active, created_at FROM users WHERE id = ? AND is_active = 1',
-      [decoded.id]
-    );
-
-    if (users.length === 0) {
-      return res.status(401).json({
-        success: false,
-        error: 'User not found or inactive'
+    const user = await db.findById('users', decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token - user not found' 
       });
     }
 
-    req.user = users[0];
+    if (!user.is_active) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Account is deactivated' 
+      });
+    }
+
+    // Add user to request object
+    req.user = user;
     next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: 'Not authorized to access this route'
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Token expired' 
+      });
+    }
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid token' 
+      });
+    }
+
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: 'Authentication error' 
     });
   }
 };
 
-const authorize = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authorized to access this route'
-      });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        error: `User role ${req.user.role} is not authorized to access this route`
-      });
-    }
-
-    next();
-  };
-};
-
-const optionalAuth = async (req, res, next) => {
-  let token;
-
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+// Middleware to check if user is admin
+const requireAdmin = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Authentication required' 
+    });
   }
 
-  if (!token && req.cookies && req.cookies.token) {
-    token = req.cookies.token;
-  }
-
-  if (!token && req.session && req.session.token) {
-    token = req.session.token;
-  }
-
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const users = await query(
-        'SELECT id, username, email, first_name, last_name, avatar, is_active FROM users WHERE id = ? AND is_active = 1',
-        [decoded.id]
-      );
-
-      if (users.length > 0) {
-        req.user = users[0];
-      }
-    } catch (error) {
-      // Token is invalid, but we don't throw an error for optional auth
-    }
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Admin access required' 
+    });
   }
 
   next();
 };
 
+// Middleware to check if user is moderator or admin
+const requireModerator = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Authentication required' 
+    });
+  }
+
+  if (!['admin', 'moderator'].includes(req.user.role)) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Moderator access required' 
+    });
+  }
+
+  next();
+};
+
+// Optional authentication middleware (doesn't fail if no token)
+const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await db.findById('users', decoded.userId);
+      
+      if (user && user.is_active) {
+        req.user = user;
+      }
+    }
+    
+    next();
+  } catch (error) {
+    // Continue without authentication if token is invalid
+    next();
+  }
+};
+
+// Generate JWT token
+const generateToken = (userId) => {
+  return jwt.sign(
+    { userId }, 
+    process.env.JWT_SECRET, 
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+};
+
 module.exports = {
-  protect,
-  authorize,
-  optionalAuth
+  authenticateToken,
+  requireAdmin,
+  requireModerator,
+  optionalAuth,
+  generateToken
 };

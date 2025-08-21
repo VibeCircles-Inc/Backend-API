@@ -1,42 +1,39 @@
 # VibeCircles Backend API
 
-A modern Node.js/Express backend for the VibeCircles social media platform.
+A Node.js/Express backend API for the VibeCircles social media platform, built with Supabase as the database.
 
 ## Features
 
-- 🔐 **Authentication & Authorization** - JWT-based authentication with role-based access control
-- 👥 **User Management** - User registration, profiles, following/followers
-- 📝 **Posts & Comments** - Create, read, update, delete posts and comments
-- ❤️ **Likes & Interactions** - Like/unlike posts and track interactions
-- 👥 **Groups** - Create and manage groups with member roles
-- 🔔 **Notifications** - Real-time notifications for user activities
-- 📤 **File Uploads** - Image upload with automatic optimization and thumbnails
-- 🛡️ **Security** - Rate limiting, input validation, CORS, helmet security
-- 📊 **Database** - MySQL with connection pooling and transactions
-- 🚀 **Performance** - Compression, caching, optimized queries
+- 🔐 **Authentication & Authorization**: JWT-based authentication with role-based access control
+- 👥 **User Management**: User registration, profiles, and friend system
+- 📝 **Posts & Comments**: Create, read, update, delete posts with comments and likes
+- 🔍 **Search & Pagination**: Advanced search and pagination for all resources
+- 🛡️ **Security**: Rate limiting, input validation, CORS, and security headers
+- 📊 **Real-time Ready**: Prepared for real-time features with Socket.IO
+- 🗄️ **Database**: PostgreSQL with Supabase for scalability and reliability
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js (v18+)
 - **Framework**: Express.js
-- **Database**: MySQL 8.0+
+- **Database**: PostgreSQL (via Supabase)
 - **Authentication**: JWT (JSON Web Tokens)
-- **File Upload**: Multer + Sharp for image processing
-- **Validation**: Express-validator
-- **Security**: Helmet, CORS, Rate limiting
-- **Sessions**: Express-session with MySQL store
+- **Validation**: Express Validator
+- **Security**: Helmet, CORS, Rate Limiting
+- **File Upload**: Multer (ready for implementation)
 
 ## Prerequisites
 
-- Node.js 18.0.0 or higher
-- MySQL 8.0 or higher
-- npm or yarn package manager
+- Node.js (v18 or higher)
+- npm or yarn
+- Supabase account and project
+- Git
 
 ## Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone <your-repo-url>
    cd vibecircles/backend
    ```
 
@@ -45,187 +42,91 @@ A modern Node.js/Express backend for the VibeCircles social media platform.
    npm install
    ```
 
-3. **Environment Setup**
+3. **Set up environment variables**
    ```bash
    cp env.example .env
    ```
    
    Edit `.env` file with your configuration:
    ```env
-   NODE_ENV=development
+   # Server Configuration
    PORT=3000
-   
-   # Database
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_NAME=vibecircles
-   DB_USER=root
-   DB_PASSWORD=your_password
-   
-   # JWT
-   JWT_SECRET=your-super-secret-jwt-key
+   NODE_ENV=development
+
+   # Supabase Configuration
+   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_KEY=your_supabase_service_key
+
+   # JWT Configuration
+   JWT_SECRET=your_jwt_secret_key_here
    JWT_EXPIRES_IN=7d
-   
-   # Other settings...
+
+   # CORS Configuration
+   CORS_ORIGIN=http://localhost:3000,https://yourdomain.com
    ```
 
-4. **Database Setup**
-   - Create a MySQL database named `vibecircles`
-   - Import the schema from `../vibecircles_schema.sql`
+4. **Set up Supabase Database**
+   - Follow the Supabase setup guide in `../database/deployment/supabase-setup.md`
+   - Run the SQL schema to create tables
+   - Configure Row Level Security (RLS) policies
 
-5. **Start the server**
+5. **Start the development server**
    ```bash
-   # Development
    npm run dev
-   
-   # Production
-   npm start
    ```
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
-- `GET /api/auth/me` - Get current user
-- `PUT /api/auth/change-password` - Change password
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Login user |
+| GET | `/api/auth/me` | Get current user |
+| PUT | `/api/auth/change-password` | Change password |
+| POST | `/api/auth/forgot-password` | Request password reset |
+| POST | `/api/auth/reset-password` | Reset password |
+| POST | `/api/auth/logout` | Logout user |
 
 ### Users
-- `GET /api/users` - Get all users (with pagination)
-- `GET /api/users/:id` - Get user by ID
-- `PUT /api/users/profile` - Update user profile
-- `POST /api/users/:id/follow` - Follow user
-- `DELETE /api/users/:id/follow` - Unfollow user
-- `GET /api/users/:id/followers` - Get user followers
-- `GET /api/users/:id/following` - Get user following
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | Get all users (with search) |
+| GET | `/api/users/:id` | Get user profile |
+| PUT | `/api/users/:id/profile` | Update user profile |
+| GET | `/api/users/:id/posts` | Get user's posts |
+| GET | `/api/users/:id/friends` | Get user's friends |
+| POST | `/api/users/:id/friend-request` | Send friend request |
+| PUT | `/api/users/:id/friend-request` | Accept/reject friend request |
+| DELETE | `/api/users/:id/friend` | Remove friend |
 
 ### Posts
-- `GET /api/posts` - Get all posts (with pagination)
-- `GET /api/posts/:id` - Get single post
-- `POST /api/posts` - Create post
-- `PUT /api/posts/:id` - Update post
-- `DELETE /api/posts/:id` - Delete post
-- `POST /api/posts/:id/like` - Like/unlike post
 
-### Comments
-- `GET /api/comments/post/:postId` - Get comments for a post
-- `POST /api/comments` - Create comment
-- `PUT /api/comments/:id` - Update comment
-- `DELETE /api/comments/:id` - Delete comment
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/posts` | Get all posts (with filters) |
+| GET | `/api/posts/:id` | Get single post |
+| POST | `/api/posts` | Create new post |
+| PUT | `/api/posts/:id` | Update post |
+| DELETE | `/api/posts/:id` | Delete post |
+| POST | `/api/posts/:id/like` | Like/unlike post |
+| POST | `/api/posts/:id/comments` | Add comment to post |
+| GET | `/api/posts/:id/comments` | Get post comments |
 
-### Groups
-- `GET /api/groups` - Get all groups
-- `GET /api/groups/:id` - Get single group
-- `POST /api/groups` - Create group
-- `POST /api/groups/:id/join` - Join group
-- `DELETE /api/groups/:id/join` - Leave group
-- `GET /api/groups/:id/members` - Get group members
+## Authentication
 
-### Notifications
-- `GET /api/notifications` - Get user notifications
-- `PUT /api/notifications/:id/read` - Mark notification as read
-- `PUT /api/notifications/read-all` - Mark all notifications as read
-- `DELETE /api/notifications/:id` - Delete notification
+The API uses JWT (JSON Web Tokens) for authentication. Include the token in the Authorization header:
 
-### Uploads
-- `POST /api/upload/image` - Upload image
-- `POST /api/upload/avatar` - Upload avatar
-- `DELETE /api/upload/:filename` - Delete uploaded file
-
-## Database Schema
-
-The backend uses the existing MySQL schema from `vibecircles_schema.sql`. Key tables include:
-
-- `users` - User accounts and profiles
-- `posts` - User posts and content
-- `comments` - Post comments
-- `likes` - Post likes
-- `followers` - User following relationships
-- `groups` - User groups
-- `group_members` - Group membership
-- `notifications` - User notifications
-
-## Security Features
-
-- **JWT Authentication** - Secure token-based authentication
-- **Password Hashing** - bcrypt for password security
-- **Input Validation** - Express-validator for request validation
-- **Rate Limiting** - Prevent abuse with request rate limiting
-- **CORS Protection** - Configured CORS for cross-origin requests
-- **Helmet Security** - Security headers and protection
-- **SQL Injection Prevention** - Parameterized queries
-- **File Upload Security** - File type and size validation
-
-## Development
-
-### Scripts
-```bash
-npm run dev          # Start development server with nodemon
-npm start           # Start production server
-npm test            # Run tests
-npm run lint        # Run ESLint
-npm run migrate     # Run database migrations
-npm run seed        # Seed database with sample data
+```
+Authorization: Bearer <your-jwt-token>
 ```
 
-### Environment Variables
+## Request/Response Format
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NODE_ENV` | Environment mode | `development` |
-| `PORT` | Server port | `3000` |
-| `DB_HOST` | Database host | `localhost` |
-| `DB_PORT` | Database port | `3306` |
-| `DB_NAME` | Database name | `vibecircles` |
-| `DB_USER` | Database user | `root` |
-| `DB_PASSWORD` | Database password | `` |
-| `JWT_SECRET` | JWT secret key | Required |
-| `JWT_EXPIRES_IN` | JWT expiration | `7d` |
-| `MAX_FILE_SIZE` | Max file upload size | `10485760` (10MB) |
-
-## Deployment
-
-### Render Deployment
-
-1. **Connect to GitHub**
-   - Push your code to GitHub
-   - Connect your repository to Render
-
-2. **Create Web Service**
-   - Service Type: Web Service
-   - Build Command: `npm install`
-   - Start Command: `npm start`
-
-3. **Environment Variables**
-   - Add all required environment variables in Render dashboard
-   - Set `NODE_ENV=production`
-
-4. **Database**
-   - Use Render's MySQL add-on or external MySQL service
-   - Update database connection variables
-
-### Environment Variables for Production
-
-```env
-NODE_ENV=production
-PORT=10000
-DB_HOST=your-production-db-host
-DB_NAME=vibecircles
-DB_USER=your-db-user
-DB_PASSWORD=your-db-password
-JWT_SECRET=your-production-jwt-secret
-CORS_ORIGIN=https://your-frontend-domain.com
-```
-
-## API Documentation
-
-### Request Format
-All API requests should include:
-- `Content-Type: application/json` header
-- For authenticated routes: `Authorization: Bearer <token>` header
-
-### Response Format
+### Success Response
 ```json
 {
   "success": true,
@@ -240,9 +141,131 @@ All API requests should include:
 ```json
 {
   "success": false,
-  "error": "Error message"
+  "message": "Error description",
+  "errors": [
+    {
+      "field": "field_name",
+      "message": "Validation error message",
+      "value": "invalid_value"
+    }
+  ]
 }
 ```
+
+## Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | 3000 |
+| `NODE_ENV` | Environment | development |
+| `SUPABASE_URL` | Supabase project URL | Required |
+| `SUPABASE_ANON_KEY` | Supabase anonymous key | Required |
+| `SUPABASE_SERVICE_KEY` | Supabase service key | Required |
+| `JWT_SECRET` | JWT signing secret | Required |
+| `JWT_EXPIRES_IN` | JWT expiration time | 7d |
+| `CORS_ORIGIN` | Allowed CORS origins | http://localhost:3000 |
+
+## Development
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server with nodemon
+npm start           # Start production server
+npm test            # Run tests
+npm run lint        # Run ESLint
+```
+
+### Project Structure
+
+```
+backend/
+├── config/
+│   └── database.js          # Database configuration
+├── middleware/
+│   ├── auth.js              # Authentication middleware
+│   └── validation.js        # Input validation
+├── routes/
+│   ├── auth.js              # Authentication routes
+│   ├── posts.js             # Posts routes
+│   └── users.js             # Users routes
+├── server.js                # Main server file
+├── package.json             # Dependencies and scripts
+├── env.example              # Environment variables template
+└── README.md                # This file
+```
+
+## Deployment
+
+### Prerequisites for Deployment
+
+1. **Supabase Setup**
+   - Create a Supabase project
+   - Run the database schema
+   - Configure RLS policies
+   - Get API keys
+
+2. **Environment Variables**
+   - Set all required environment variables
+   - Use strong JWT secrets
+   - Configure CORS for your domain
+
+### Deployment Options
+
+#### Render (Recommended)
+
+1. **Connect to GitHub**
+   - Push your code to GitHub
+   - Connect your repository to Render
+
+2. **Create Web Service**
+   - Service Type: Web Service
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+   - Environment: Node
+
+3. **Set Environment Variables**
+   - Add all required environment variables in Render dashboard
+
+4. **Deploy**
+   - Render will automatically deploy on every push to main branch
+
+#### Other Platforms
+
+The application can be deployed to any Node.js hosting platform:
+- Heroku
+- Vercel
+- Railway
+- DigitalOcean App Platform
+- AWS Elastic Beanstalk
+
+## Security Features
+
+- **Rate Limiting**: Prevents abuse with configurable limits
+- **Input Validation**: All inputs are validated and sanitized
+- **CORS Protection**: Configurable cross-origin resource sharing
+- **Security Headers**: Helmet.js provides security headers
+- **JWT Authentication**: Secure token-based authentication
+- **Password Hashing**: Bcrypt for password security
+- **SQL Injection Protection**: Parameterized queries via Supabase
+
+## Monitoring & Logging
+
+- **Morgan**: HTTP request logging
+- **Error Handling**: Global error handler with proper responses
+- **Health Check**: `/health` endpoint for monitoring
+
+## Future Enhancements
+
+- [ ] File upload functionality
+- [ ] Real-time messaging with Socket.IO
+- [ ] Email notifications
+- [ ] Push notifications
+- [ ] Advanced search with full-text search
+- [ ] Image optimization and CDN
+- [ ] API documentation with Swagger
+- [ ] Unit and integration tests
+- [ ] Docker containerization
 
 ## Contributing
 
@@ -258,4 +281,7 @@ This project is licensed under the MIT License.
 
 ## Support
 
-For support and questions, please open an issue in the GitHub repository.
+For support and questions:
+- Create an issue in the GitHub repository
+- Check the Supabase documentation
+- Review the API documentation above
