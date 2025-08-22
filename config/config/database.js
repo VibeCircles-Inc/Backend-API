@@ -149,7 +149,7 @@ const db = {
         .from(table)
         .select('*')
         .eq(field, value)
-        .single();
+        .maysingle();
       
       if (error) {
         throw new Error(error.message);
